@@ -34,3 +34,58 @@ jobs:
         with:
           name: NEET-ACE-PRO-debug-apk
           path: source/app/build/outputs/apk/debug/app-debug.apk
+
+name: Build NEET ACE PRO APK
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Extract project
+        run: |
+          mkdir source
+          unzip -q NEET_ACE_PRO_Mobile_APK_Builder.zip -d source
+
+      - name: Fix Java Kotlin compatibility
+        run: |
+          python3 - <<'PY'
+          p = "source/app/build.gradle.kts"
+          s = open(p).read()
+          s = s.replace(
+              "android {",
+              """android {
+              compileOptions {
+                  sourceCompatibility = JavaVersion.VERSION_17
+                  targetCompatibility = JavaVersion.VERSION_17
+              }""",
+              1
+          )
+          open(p, "w").write(s)
+          PY
+
+      - name: Build APK
+        run: gradle -p source assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: NEET-ACE-PRO-debug-apk
+          path: source/app/build/outputs/apk/debug/app-debug.apk
